@@ -1,7 +1,15 @@
 package main
 
-import "log"
+import (
+	"net/http"
+
+	"github.com/gorilla/mux"
+)
 
 func main() {
-	log.Println("hello world")
+	r := mux.NewRouter()
+
+	nntp := nntpHandler{}
+	r.Path("/nntp").Handler(nntp)
+	http.Handle("/", r)
 }
