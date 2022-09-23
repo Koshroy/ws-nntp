@@ -19,7 +19,7 @@ type Client struct {
 	remoteConnEstablished bool
 	ctx                   context.Context
 	pingTimer             *time.Ticker
-	writeChan             chan string
+	cancel                context.CancelFunc
 }
 
 func (c *Client) pongHandler(_ string) error {
@@ -28,15 +28,15 @@ func (c *Client) pongHandler(_ string) error {
 }
 
 func newClient(wsConn *websocket.Conn, remoteConn net.Conn, ctx context.Context) *Client {
-	writeChan := make(chan string)
 	ticker := time.NewTicker(PingTimeout * time.Second)
+	newCtx, cancel := context.WithCancel(ctx)
 	client := &Client{
 		wsConn:                wsConn,
 		remoteConn:            remoteConn,
 		remoteConnEstablished: false,
-		ctx:                   ctx,
+		ctx:                   newCtx,
 		pingTimer:             ticker,
-		writeChan:             writeChan,
+		cancel:                cancel,
 	}
 	client.wsConn.SetPongHandler(client.pongHandler)
 	return client
@@ -44,14 +44,25 @@ func newClient(wsConn *websocket.Conn, remoteConn net.Conn, ctx context.Context)
 
 func (c *Client) managerLoop() {
 	ctxDone := c.ctx.Done()
+	closeMsg := websocket.FormatCloseMessage(1000, "closing websocket")
 	for {
 		select {
 		case <-ctxDone:
-			log.Println("Finishing websocket read/write loops")
+			err := c.wsConn.WriteMessage(websocket.CloseMessage, closeMsg)
+			if err != nil {
+				log.Println("error writing close message to websocket connection:", err)
+			}
+			err = c.wsConn.Close()
+			if err != nil {
+				log.Println("error closing websocket connection:", err)
+			}
+			err = c.remoteConn.Close()
+			if err != nil {
+				log.Println("error closing remote nntp connection:", err)
+			}
 			return
 		case <-c.pingTimer.C:
 			log.Println("ping timeout reached, closing connection")
-			close(c.writeChan)
 			err := c.wsConn.Close()
 			if err != nil {
 				log.Println("error closing websocket connection:", err)
