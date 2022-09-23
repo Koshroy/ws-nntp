@@ -30,7 +30,7 @@ func NewNNTPHandler() Handler {
 func (n Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	host := r.Header.Get("remote")
 	if host == "" {
-		http.Error(w, "no remote form param found", http.StatusBadRequest)
+		http.Error(w, "no remote header found", http.StatusBadRequest)
 		return
 	}
 
