@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"net"
-	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -28,12 +27,12 @@ func (c *Client) pongHandler(_ string) error {
 	return nil
 }
 
-func newClient(wsConn *websocket.Conn, ctx context.Context) *Client {
+func newClient(wsConn *websocket.Conn, remoteConn net.Conn, ctx context.Context) *Client {
 	writeChan := make(chan string)
 	ticker := time.NewTicker(PingTimeout * time.Second)
 	client := &Client{
 		wsConn:                wsConn,
-		remoteConn:            nil,
+		remoteConn:            remoteConn,
 		remoteConnEstablished: false,
 		ctx:                   ctx,
 		pingTimer:             ticker,
@@ -57,11 +56,9 @@ func (c *Client) managerLoop() {
 			if err != nil {
 				log.Println("error closing websocket connection:", err)
 			}
-			if c.remoteConnEstablished {
-				err := c.remoteConn.Close()
-				if err != nil {
-					log.Println("error closing remote nntp connection:", err)
-				}
+			err = c.remoteConn.Close()
+			if err != nil {
+				log.Println("error closing remote nntp connection:", err)
 			}
 			return
 		}
@@ -83,9 +80,4 @@ func msgTypeString(msgType int) string {
 	default:
 		return "unknown"
 	}
-}
-
-func isSpecialCmd(line string) bool {
-	lowerLine := strings.ToLower(line)
-	return strings.HasPrefix(lowerLine, "connect ")
 }
