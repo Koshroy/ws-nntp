@@ -25,7 +25,6 @@ func (c *Client) writeToWSLoop() {
 			line, err := remoteReader.ReadString('\n')
 			if err != nil {
 				if errors.Is(err, io.EOF) {
-					log.Println("Received line", line, "EOF encountered in remote stream. Exiting")
 					return
 				} else if errors.Is(err, net.ErrClosed) {
 					return

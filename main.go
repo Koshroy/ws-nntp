@@ -11,6 +11,7 @@ import (
 
 func main() {
 	r := mux.NewRouter()
+	r.Use(loggingMiddleware)
 
 	nntp := nntp.Handler{}
 	r.Path("/nntp").Handler(nntp)
@@ -24,4 +25,11 @@ func main() {
 
 	log.Println("starting web server")
 	log.Fatal(srv.ListenAndServe())
+}
+
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("%s %s", r.Method, r.RequestURI)
+		next.ServeHTTP(w, r)
+	})
 }
