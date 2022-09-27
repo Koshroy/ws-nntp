@@ -10,6 +10,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+func isSilentError(err error) bool {
+	return errors.Is(err, websocket.ErrCloseSent) ||
+		errors.Is(err, net.ErrClosed) ||
+		websocket.IsCloseError(err, websocket.CloseAbnormalClosure)
+}
+
 func (c *Client) readFromWSLoop() {
 	var remoteReader bufio.Reader
 	var remoteWriter bufio.Writer
@@ -24,7 +30,7 @@ func (c *Client) readFromWSLoop() {
 		default:
 			msgType, r, err := c.wsConn.NextReader()
 			if err != nil {
-				if !errors.Is(err, websocket.ErrCloseSent) && !errors.Is(err, net.ErrClosed) {
+				if !isSilentError(err) {
 					log.Println("error fetching from reader:", err)
 				}
 				return
