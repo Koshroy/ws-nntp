@@ -22,15 +22,18 @@ func NewNNTPHandler() Handler {
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
+			CheckOrigin: func(r *http.Request) bool {
+				return true
+			},
 		},
 		connStateMap: sync.Map{},
 	}
 }
 
 func (n Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	host := r.Header.Get("remote")
+	host := r.Header.Get("sec-websocket-protocol")
 	if host == "" {
-		http.Error(w, "no remote header found", http.StatusBadRequest)
+		http.Error(w, "no sec-websocket-protocol header found", http.StatusBadRequest)
 		return
 	}
 
@@ -56,7 +59,7 @@ func (n Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	wsConn, err := n.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Println("could not upgrade websocket connection:", err)
 		closeErr := nntpConn.Close() != nil
 		if closeErr {
 			log.Println("error closing nntp connection:", closeErr)

@@ -49,7 +49,7 @@ func (c *Client) managerLoop() {
 		select {
 		case <-ctxDone:
 			err := c.wsConn.WriteMessage(websocket.CloseMessage, closeMsg)
-			if err != nil {
+			if err != nil && err != websocket.ErrCloseSent {
 				log.Println("error writing close message to websocket connection:", err)
 			}
 			err = c.wsConn.Close()

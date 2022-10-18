@@ -13,7 +13,7 @@ func main() {
 	r := mux.NewRouter()
 	r.Use(loggingMiddleware)
 
-	nntp := nntp.Handler{}
+	nntp := nntp.NewNNTPHandler()
 	r.Path("/nntp").Handler(nntp)
 
 	srv := &http.Server{
